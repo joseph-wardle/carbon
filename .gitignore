@@ -1,3 +1,9 @@
+.idea
+.vscode
+.jj
+
+build
+
 # Prerequisites
 *.d
 
