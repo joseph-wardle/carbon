@@ -5,7 +5,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(carbon_core LANGUAGES CXX)
+project(carbon LANGUAGES CXX)
 option(CARBON_TEST "Build tests" OFF)
 
 add_subdirectory(src)
