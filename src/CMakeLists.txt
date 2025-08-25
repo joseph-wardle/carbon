@@ -8,4 +8,5 @@ target_sources(carbon
         FILE_SET cxx_modules TYPE CXX_MODULES FILES
             types.cppm
             string_view.cppm
+            random.cppm
 )
