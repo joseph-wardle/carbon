@@ -1,4 +1,4 @@
-export module carbon.core.string;
+export module carbon.string_view;
 
 import carbon.types;
 
