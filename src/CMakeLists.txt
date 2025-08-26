@@ -9,4 +9,5 @@ target_sources(carbon
             types.cppm
             string_view.cppm
             random.cppm
+            time.cppm
 )
