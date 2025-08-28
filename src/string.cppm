@@ -9,8 +9,8 @@ export template <usize N>
 struct SmallString {
     char  s[N]{};
     usize len{};
-    constexpr const char* c_str() const noexcept { return s; }
-    constexpr StringView view() const noexcept { return {s, len}; }
+    [[nodiscard]] constexpr const char* c_str() const noexcept { return s; }
+    [[nodiscard]] constexpr StringView view() const noexcept { return {s, len}; }
 };
 
 } // namespace carbon
