@@ -8,12 +8,16 @@ template<class T>
 [[noreturn]] inline void panic(const char *) { __builtin_trap(); }
 
 export template <class T>
-class option {
+class Option {
     alignas(T) unsigned char buf_[sizeof(T)];
     bool has_{false};
 
-    constexpr       T* p()       noexcept { return static_cast<T *>(buf_); }
-    constexpr const T* p() const noexcept { return static_cast<const T *>(buf_); }
+    constexpr       T* p()       noexcept {
+        return __builtin_launder(reinterpret_cast<T*>(reinterpret_cast<void*>(buf_)));
+    }
+    constexpr const T* p() const noexcept {
+        return __builtin_launder(reinterpret_cast<const T*>(reinterpret_cast<const void*>(buf_)));
+    }
 
     template<class U>
     constexpr void construct(U&& u) { ::new (static_cast<void *>(buf_)) T(static_cast<U &&>(u)); has_ = true; }
@@ -25,13 +29,21 @@ public:
     [[nodiscard]] constexpr bool is_none() const noexcept { return !has_; }
 
     // factories
-    [[nodiscard]] static constexpr option some(const T& v)  { option o; o.construct(v);          return o; }
-    [[nodiscard]] static constexpr option some(T&& v)       { option o; o.construct(move(v));    return o; }
-    [[nodiscard]] static constexpr option none() noexcept   { return option{}; }
+    [[nodiscard]] static constexpr Option some(const T& v)  { Option o; o.construct(v);          return o; }
+    [[nodiscard]] static constexpr Option some(T&& v)       { Option o; o.construct(move(v));    return o; }
+    [[nodiscard]] static constexpr Option none() noexcept   { return Option{}; }
 
-    constexpr option() noexcept = default;
+    constexpr Option() noexcept = default;
 
-    constexpr option& operator=(const option& rhs) {
+    constexpr Option(const Option& other) {
+        if (other.has_) construct(*other.p());
+    }
+
+    constexpr Option(Option&& other) noexcept {
+        if (other.has_) { construct(move(*other.p())); other.destroy(); }
+    }
+
+    constexpr Option& operator=(const Option& rhs) {
         if (this == &rhs) return *this;
         if (has_ && rhs.has_)       { *p() = *rhs.p(); }
         else if (has_ && !rhs.has_) { destroy(); }
@@ -39,7 +51,7 @@ public:
         return *this;
     }
 
-    constexpr option& operator=(option&& rhs) noexcept {
+    constexpr Option& operator=(Option&& rhs) noexcept {
         if (this == &rhs) return *this;
         if (has_ && rhs.has_)       { *p() = move(*rhs.p()); rhs.destroy(); }
         else if (has_ && !rhs.has_) { destroy(); }
@@ -47,7 +59,7 @@ public:
         return *this;
     }
 
-    constexpr ~option() noexcept { destroy(); }
+    constexpr ~Option() noexcept { destroy(); }
 
     [[nodiscard]] constexpr       T& peek() &       { if (!has_) panic("peek on None"); return *p(); }
     [[nodiscard]] constexpr const T& peek() const & { if (!has_) panic("peek on None"); return *p(); }
