@@ -70,7 +70,8 @@ export inline Steady now_mono_ns() noexcept {
     return Steady{ s * NS_PER_SEC + ns };
 }
 
-export [[nodiscard]] char* format_rfc3339_utc(char out[RFC3339_SIZE], const Instant t) noexcept {
+export [[nodiscard]] char* format_rfc3339_utc(const Instant t) noexcept {
+    char out[RFC3339_SIZE];
     const u64 sec = t.ns / NS_PER_SEC;
     const u64 nss = t.ns % NS_PER_SEC;
 
