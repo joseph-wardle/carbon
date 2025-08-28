@@ -3,6 +3,7 @@ module;
 export module carbon.time;
 
 import carbon.types;
+import carbon.string;
 
 // ---- Units & layout ----
 constexpr u64 NS_PER_SEC   = 1'000'000'000ull;
@@ -70,8 +71,8 @@ export inline Steady now_mono_ns() noexcept {
     return Steady{ s * NS_PER_SEC + ns };
 }
 
-export [[nodiscard]] char* format_rfc3339_utc(const Instant t) noexcept {
-    char out[RFC3339_SIZE];
+export [[nodiscard]] SmallString<RFC3339_SIZE> format_rfc3339_utc(const Instant t) noexcept {
+    SmallString<RFC3339_SIZE> out{};
     const u64 sec = t.ns / NS_PER_SEC;
     const u64 nss = t.ns % NS_PER_SEC;
 
@@ -83,7 +84,7 @@ export [[nodiscard]] char* format_rfc3339_utc(const Instant t) noexcept {
     const u32 minute = static_cast<u32>((sod % SEC_PER_HOUR) / SEC_PER_MIN);
     const u32 second = static_cast<u32>(sod % SEC_PER_MIN);
 
-    char* q = out;
+    char* q = out.s;
     q = put<4>(q, clamp_year4(year));
     q = put_char(q, '-');
     q = put<2>(q, month);
@@ -100,7 +101,8 @@ export [[nodiscard]] char* format_rfc3339_utc(const Instant t) noexcept {
     q = put_char(q, 'Z');
 
     *q = '\0';
-    return q; // points at the NUL
+    out.len = static_cast<usize>(q - out.s);
+    return out; // points at the NUL
 
 }
 } // namespace carbon
