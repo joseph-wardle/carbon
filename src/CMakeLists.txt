@@ -11,4 +11,5 @@ target_sources(carbon
             string.cppm
             random.cppm
             time.cppm
+            option.cppm
 )
