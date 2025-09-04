@@ -16,6 +16,9 @@ namespace carbon {
 
     public:
         constexpr StringView() noexcept = default;
+        template<usize N>
+        constexpr StringView(const char (&s)[N]) noexcept
+            : data_{s}, size_{N ? N - 1 : 0} {}
         constexpr explicit StringView(const char* s) noexcept
             : data_{s}, size_{strlen(s)} {}
         constexpr StringView(const char* s, const usize n) noexcept
