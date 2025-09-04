@@ -79,6 +79,15 @@ public:
         if (has_) { T out = move(*p()); destroy(); return out; }
         return move(fallback); // move
     }
+
+    [[nodiscard]] constexpr T value() const & {
+        if (!has_) panic("value on None");
+        return *p();
+    }
+
+    [[nodiscard]] constexpr T value_or(T fallback) const & {
+        return has_ ? *p() : carbon::move(fallback);
+    }
 };
 
 } // namespace carbon
