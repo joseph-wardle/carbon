@@ -13,74 +13,58 @@ class Result {
 
     alignas(kAlign) unsigned char storage_[kSize];
 
-    enum class state_t : unsigned char { ok, err };
-    state_t state_;
+    enum class state_t : unsigned char { none, ok, err };
+    state_t state_{ state_t::none };
 
     // Typed views into storage (valid only when that arm is active).
-    constexpr       T* tptr()       noexcept {
-        return launder(reinterpret_cast<T*>(reinterpret_cast<void*>(storage_)));
-    }
-    constexpr const T* tptr() const noexcept {
-        return launder(reinterpret_cast<const T*>(reinterpret_cast<const void*>(storage_)));
-    }
-    constexpr       E* eptr()       noexcept {
-        return launder(reinterpret_cast<E*>(reinterpret_cast<void*>(storage_)));
-    }
-    constexpr const E* eptr() const noexcept {
-        return launder(reinterpret_cast<const E*>(reinterpret_cast<const void*>(storage_)));
-    }
+    constexpr       T* tptr()       noexcept { return launder(reinterpret_cast<T*>(reinterpret_cast<void*>(storage_))); }
+    constexpr const T* tptr() const noexcept { return launder(reinterpret_cast<const T*>(reinterpret_cast<const void*>(storage_))); }
+    constexpr       E* eptr()       noexcept { return launder(reinterpret_cast<E*>(reinterpret_cast<void*>(storage_))); }
+    constexpr const E* eptr() const noexcept { return launder(reinterpret_cast<const E*>(reinterpret_cast<const void*>(storage_))); }
 
-    template<class U>
-    constexpr void emplace_ok(U&& v) {
-        ::new (static_cast<void*>(storage_)) T(static_cast<U&&>(v));
-        state_ = state_t::ok;
-    }
-    template<class G>
-    constexpr void emplace_err(G&& e) {
-        ::new (static_cast<void*>(storage_)) E(static_cast<G&&>(e));
-        state_ = state_t::err;
-    }
+    template<class U> constexpr void emplace_ok(U&& v)  { ::new (static_cast<void*>(storage_)) T(static_cast<U&&>(v)); state_ = state_t::ok; }
+    template<class G> constexpr void emplace_err(G&& e) { ::new (static_cast<void*>(storage_)) E(static_cast<G&&>(e)); state_ = state_t::err; }
 
     constexpr void destroy_() noexcept {
-        if (state_ == state_t::ok) { tptr()->~T(); }
-        else if (state_ == state_t::err) { eptr()->~E(); }
-        state_ = state_t::empty;
+        if      (state_ == state_t::ok)  tptr()->~T();
+        else if (state_ == state_t::err) eptr()->~E();
+        state_ = state_t::none;
     }
 
-    // Private default: only factories construct a well-formed result.
     constexpr Result() noexcept = default;
 
 public:
-    // ---- state queries ----------------------------------------------------
     [[nodiscard]] constexpr bool is_ok()  const noexcept { return state_ == state_t::ok;  }
     [[nodiscard]] constexpr bool is_err() const noexcept { return state_ == state_t::err; }
-    // ----------------------------------------------------------------------
 
-    // ---- factories --------------------------------------------------------
     [[nodiscard]] static constexpr Result ok(const T& v)  { Result r; r.emplace_ok(v);        return r; }
     [[nodiscard]] static constexpr Result ok(T&& v)       { Result r; r.emplace_ok(move(v));  return r; }
     [[nodiscard]] static constexpr Result err(const E& e) { Result r; r.emplace_err(e);       return r; }
     [[nodiscard]] static constexpr Result err(E&& e)      { Result r; r.emplace_err(move(e)); return r; }
-    // ----------------------------------------------------------------------
 
-    // ---- special members --------------------------------------------------
-    // Copy / Move constructors
-    constexpr Result(const Result& other) {
-        if      (other.state_ == state_t::ok)  emplace_ok(*other.tptr());
-        else if (other.state_ == state_t::err) emplace_err(*other.eptr());
-        // empty stays empty
+    constexpr Result(const Result&)            = delete;
+    constexpr Result& operator=(const Result&) = delete;
+
+    constexpr Result(Result&& other) noexcept {
+        if      (other.state_ == state_t::ok)  { emplace_ok(move(*other.tptr())); other.destroy_(); }
+        else if (other.state_ == state_t::err) { emplace_err(move(*other.eptr())); other.destroy_(); }
+    }
+
+    constexpr Result& operator=(Result&& rhs) noexcept {
+        if (this == &rhs) return *this;
+        destroy_();
+        if      (rhs.state_ == state_t::ok)  { emplace_ok(move(*rhs.tptr())); rhs.destroy_(); }
+        else if (rhs.state_ == state_t::err) { emplace_err(move(*rhs.eptr())); rhs.destroy_(); }
+        return *this;
     }
 
     constexpr ~Result() noexcept { destroy_(); }
-    // ----------------------------------------------------------------------
 
     // ---- borrows (keep result alive) -------------------------------------
     [[nodiscard]] constexpr       T& peek_ok()  &       { if (!is_ok())  panic("peek_ok on Err");  return *tptr(); }
     [[nodiscard]] constexpr const T& peek_ok()  const & { if (!is_ok())  panic("peek_ok on Err");  return *tptr(); }
-
     [[nodiscard]] constexpr       E& peek_err() &       { if (!is_err()) panic("peek_err on Ok");  return *eptr(); }
     [[nodiscard]] constexpr const E& peek_err() const & { if (!is_err()) panic("peek_err on Ok");  return *eptr(); }
-    // ----------------------------------------------------------------------
 
     // ---- consumers (move out and clear) ----------------------------------
     [[nodiscard]] constexpr T unwrap() && {
