@@ -1,11 +1,7 @@
 export module carbon.option;
+import carbon.core;
 
 namespace carbon {
-
-template<class T>
-[[nodiscard]] constexpr T&& move(T& t) noexcept { return static_cast<T &&>(t); }
-
-[[noreturn]] inline void panic(const char *) { __builtin_trap(); }
 
 export template <class T>
 class Option {
