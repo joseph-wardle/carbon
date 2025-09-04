@@ -1,4 +1,8 @@
 export module carbon.core;
+import carbon.types;
+
+export void* operator new(usize, void*) noexcept;
+export void  operator delete(void*, void*) noexcept;
 
 namespace carbon {
 
